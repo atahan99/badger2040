@@ -1,0 +1,12 @@
+git
+status / diff        st / di
+stage all            add -A
+amend last commit    commit --amend
+undo last commit     reset --soft HEAD~1
+discard a file       restore <path>
+throw away all       reset --hard
+who broke it         blame -L 10,20 <file>
+find the commit      bisect start
+stash / pop          stash / stash pop
+rebase last 3        rebase -i HEAD~3
+force push safely    push --force-with-lease

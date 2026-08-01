@@ -1,0 +1,12 @@
+tmux
+prefix             ctrl-b
+new window         c
+next / prev        n  p
+split vertical     %
+split horizontal   "
+switch pane        arrow keys
+zoom pane          z
+detach             d
+list sessions      tmux ls
+attach             tmux a -t name
+kill pane          x

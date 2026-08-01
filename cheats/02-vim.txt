@@ -1,0 +1,12 @@
+vim
+save / quit        :w  :q  :wq  :q!
+word / line        w b e  0 ^ $
+top / bottom       gg  G
+search             /text  n  N
+replace all        :%s/old/new/g
+undo / redo        u  ctrl-r
+visual block       ctrl-v
+indent             >>  <<
+split              :sp  :vsp
+switch pane        ctrl-w hjkl
+delete to end      D
