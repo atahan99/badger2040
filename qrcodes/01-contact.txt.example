@@ -1,0 +1,8 @@
+MECARD:N:Lovelace,Ada;TEL:+00000000000;EMAIL:ada@example.com;URL:https://example.com;;
+Contact card
+Scan to save my details
+straight to your phone.
+
+MECARD fits on one line,
+which a vCard does not -
+and line 1 is the payload.
