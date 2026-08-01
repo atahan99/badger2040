@@ -1,0 +1,12 @@
+# Real badge/QR content lives on the device only - the repo keeps .example
+# templates. Never commit the filled-in versions.
+badges/*.txt
+badges/*.png
+badges/*.jpg
+qrcodes/*.txt
+
+.DS_Store
+__pycache__/
+
+# 4MB firmware blob, download it from the Pimoroni releases page instead
+firmware/*.uf2
