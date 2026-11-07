@@ -86,7 +86,7 @@ display = badger2040.Badger2040()
 display.set_update_speed(badger2040.UPDATE_TURBO)
 display.set_font("bitmap8")
 
-state = {"high": 0}
+state = {"high": 0, "board": None, "score": 0}
 badger_os.state_load("p2048", state)
 
 board = []
@@ -94,11 +94,17 @@ score = 0
 over = False
 
 
+def save():
+    state["board"], state["score"] = board, score
+    badger_os.state_save("p2048", state)
+
+
 def new_game():
     global board, score, over
     board = spawn(spawn([0] * (SIZE * SIZE)))
     score = 0
     over = False
+    save()
 
 
 def render():
@@ -141,14 +147,19 @@ def apply(direction):
         return
     score += points
     board = spawn(board)
-    if score > state["high"]:
-        state["high"] = score
-        badger_os.state_save("p2048", state)
+    state["high"] = max(state["high"], score)
     over = stuck(board)
+    save()
     render()
 
 
-new_game()
+# On battery every press is a reboot, so the game has to live in the state file
+saved = state["board"]
+if saved and len(saved) == SIZE * SIZE:
+    board, score = list(saved), state["score"]
+    over = stuck(board)
+else:
+    new_game()
 render()
 
 while True:
