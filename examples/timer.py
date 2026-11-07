@@ -131,13 +131,14 @@ def restart_at_work():
     step -= step % 2
     reset_phase()
     save_progress()
-    render(left)
 
 
 reset_phase()
 if state["left"] is not None:
     left = state["left"]
-render(left)
+
+# Draw inside the loop, after any wake press is applied: one e-ink refresh, not two
+changed = True
 
 while True:
     display.keepalive()
@@ -149,24 +150,30 @@ while True:
             left -= elapsed()
             started = None
             save_progress()
-        render(left)
+        changed = True
     elif display.pressed(badger2040.BUTTON_B):
         state["pomodoros"] = 0
         step = 0
         reset_phase()
         save_progress()
-        render(left)
+        changed = True
     elif display.pressed(badger2040.BUTTON_C):
         step += 1
         reset_phase()
         save_progress()
-        render(left)
+        changed = True
     elif display.pressed(badger2040.BUTTON_UP):
         state["work_minutes"] = min(60, state["work_minutes"] + 5)
         restart_at_work()
+        changed = True
     elif display.pressed(badger2040.BUTTON_DOWN):
         state["work_minutes"] = max(5, state["work_minutes"] - 5)
         restart_at_work()
+        changed = True
+
+    if changed:
+        render(left)
+        changed = False
 
     if started is None:
         # Paused: nothing to count, so it is safe to sleep

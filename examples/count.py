@@ -63,12 +63,12 @@ def save():
     badger_os.state_save("count", state)
 
 
-render()
+# Draw inside the loop, after any wake press is applied: one e-ink refresh, not two
+changed = True
 
 while True:
     display.keepalive()
     which = state["which"]
-    changed = False
 
     if display.pressed(badger2040.BUTTON_A):
         state["counts"][which] = clamp(state["counts"][which] + 1)
@@ -91,5 +91,6 @@ while True:
     if changed:
         save()
         render()
+        changed = False
 
     display.halt()

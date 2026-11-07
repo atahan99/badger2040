@@ -107,22 +107,28 @@ if len(state["grid"]) == COLS * ROWS * 2:
     population = sum(cur)
 else:
     reseed()
-render()
+
+# Draw inside the loop, after any wake press is applied: one e-ink refresh, not two
+changed = True
 
 while True:
     display.keepalive()
 
     if display.pressed(badger2040.BUTTON_A):
         running = not running
-        render()
+        changed = True
     elif display.pressed(badger2040.BUTTON_B):
         running = False
         reseed()
-        render()
+        changed = True
     elif display.pressed(badger2040.BUTTON_C):
         running = False
         advance()
+        changed = True
+
+    if changed:
         render()
+        changed = False
 
     if running:
         advance()

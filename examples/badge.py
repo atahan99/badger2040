@@ -169,12 +169,12 @@ def draw_badge():
     display.update()
 
 
-draw_badge()
+# Draw inside the loop, after any wake press is applied: one e-ink refresh, not two
+changed = True
 
 while True:
     display.keepalive()
 
-    changed = False
     if display.pressed(badger2040.BUTTON_UP):
         state["index"] = (state["index"] - 1) % len(badges)
         changed = True
@@ -185,5 +185,6 @@ while True:
     if changed:
         badger_os.state_save("badge", state)
         draw_badge()
+        changed = False
 
     display.halt()

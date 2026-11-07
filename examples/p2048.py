@@ -141,16 +141,17 @@ def render():
 
 
 def apply(direction):
+    """Play one move. Returns True if the board changed."""
     global board, score, over
     board, points, changed = move(board, direction)
     if not changed:
-        return
+        return False
     score += points
     board = spawn(board)
     state["high"] = max(state["high"], score)
     over = stuck(board)
     save()
-    render()
+    return True
 
 
 # On battery every press is a reboot, so the game has to live in the state file
@@ -160,22 +161,28 @@ if saved and len(saved) == SIZE * SIZE:
     over = stuck(board)
 else:
     new_game()
-render()
+
+# Draw inside the loop, after any wake press is applied: one e-ink refresh, not two
+changed = True
 
 while True:
     display.keepalive()
 
     if display.pressed(badger2040.BUTTON_B):
         new_game()
-        render()
+        changed = True
     elif not over:
         if display.pressed(badger2040.BUTTON_UP):
-            apply("U")
+            changed = apply("U") or changed
         elif display.pressed(badger2040.BUTTON_DOWN):
-            apply("D")
+            changed = apply("D") or changed
         elif display.pressed(badger2040.BUTTON_A):
-            apply("L")
+            changed = apply("L") or changed
         elif display.pressed(badger2040.BUTTON_C):
-            apply("R")
+            changed = apply("R") or changed
+
+    if changed:
+        render()
+        changed = False
 
     display.halt()
