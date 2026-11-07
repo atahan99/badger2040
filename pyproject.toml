@@ -1,0 +1,13 @@
+# Lint config only - the apps run on MicroPython, nothing here is packaged.
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "B"]
+# B905: MicroPython's zip() has no strict= argument
+ignore = ["B905"]
+
+[tool.ruff.lint.per-file-ignores]
+# Imports sit below the "# --- hardware below ---" marker on purpose, so the
+# desktop tests can exec the pure logic without badger2040
+"examples/*" = ["E402"]
