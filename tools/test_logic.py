@@ -45,7 +45,7 @@ def test_life():
 
 def test_snake():
     snake = pure("snake")
-    move, RIGHT, UP = snake["move"], snake["RIGHT"], snake["UP"]
+    move, RIGHT = snake["move"], snake["RIGHT"]
 
     body = [(2, 1), (1, 1)]
     moved, ate, dead = move(body, RIGHT, (9, 9), 10, 10)

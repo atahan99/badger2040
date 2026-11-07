@@ -36,7 +36,9 @@ def step(cur, nxt, cols, rows):
 
 
 # --- hardware below ---
+import binascii
 import badger2040
+import badger_os
 
 
 display = badger2040.Badger2040()
@@ -48,13 +50,28 @@ nxt = bytearray(COLS * ROWS)
 generation = 0
 population = 0
 running = False
+dirty = False     # grid changed since it was last saved
+
+# On battery a paused grid powers off with the board, and the next press is a
+# fresh boot - so the grid is saved before every sleep, as hex (~4KB).
+state = {"grid": "", "generation": 0}
+badger_os.state_load("life", state)
+
+
+def save():
+    global dirty
+    state["grid"] = binascii.hexlify(cur).decode()
+    state["generation"] = generation
+    badger_os.state_save("life", state)
+    dirty = False
 
 
 def reseed():
-    global generation, population
+    global generation, population, dirty
     randomise(cur, COLS, ROWS)
     generation = 0
     population = sum(cur)
+    dirty = True
 
 
 def render():
@@ -77,29 +94,41 @@ def render():
 
 
 def advance():
-    global cur, nxt, generation, population
+    global cur, nxt, generation, population, dirty
     population = step(cur, nxt, COLS, ROWS)
     cur, nxt = nxt, cur
     generation += 1
+    dirty = True
 
 
-reseed()
-render()
+if len(state["grid"]) == COLS * ROWS * 2:
+    cur = bytearray(binascii.unhexlify(state["grid"]))
+    generation = state["generation"]
+    population = sum(cur)
+else:
+    reseed()
+
+# Draw inside the loop, after any wake press is applied: one e-ink refresh, not two
+changed = True
 
 while True:
     display.keepalive()
 
     if display.pressed(badger2040.BUTTON_A):
         running = not running
-        render()
+        changed = True
     elif display.pressed(badger2040.BUTTON_B):
         running = False
         reseed()
-        render()
+        changed = True
     elif display.pressed(badger2040.BUTTON_C):
         running = False
         advance()
+        changed = True
+
+    if changed:
         render()
+        changed = False
 
     if running:
         advance()
@@ -109,4 +138,6 @@ while True:
             reseed()
             render()
     else:
+        if dirty:
+            save()
         display.halt()

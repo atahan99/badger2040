@@ -46,10 +46,12 @@ display = badger2040.Badger2040()
 display.set_update_speed(badger2040.UPDATE_FAST)
 display.set_font("bitmap8")
 
-state = {"work_minutes": 25, "pomodoros": 0}
+# step and left are saved too: on battery a paused timer powers off, and the
+# press that resumes it is a fresh boot.
+state = {"work_minutes": 25, "pomodoros": 0, "step": 0, "left": None}
 badger_os.state_load("timer", state)
 
-step = 0
+step = state["step"]
 name = ""
 minutes = 0
 is_work = True
@@ -64,6 +66,11 @@ def reset_phase():
     left = minutes * 60
     started = None
     last_drawn = None
+
+
+def save_progress():
+    state["step"], state["left"] = step, left
+    badger_os.state_save("timer", state)
 
 
 def elapsed():
@@ -107,7 +114,6 @@ def finish_phase():
     global step
     if is_work:
         state["pomodoros"] += 1
-        badger_os.state_save("timer", state)
     for _ in range(6):
         display.led(255)
         time.sleep(0.15)
@@ -115,20 +121,24 @@ def finish_phase():
         time.sleep(0.15)
     step += 1
     reset_phase()
+    save_progress()
     render(left)
 
 
 def restart_at_work():
     """UP/DOWN changed the work length - rewind to the start of this cycle."""
     global step
-    badger_os.state_save("timer", state)
     step -= step % 2
     reset_phase()
-    render(left)
+    save_progress()
 
 
 reset_phase()
-render(left)
+if state["left"] is not None:
+    left = state["left"]
+
+# Draw inside the loop, after any wake press is applied: one e-ink refresh, not two
+changed = True
 
 while True:
     display.keepalive()
@@ -139,23 +149,31 @@ while True:
         else:
             left -= elapsed()
             started = None
-        render(left)
+            save_progress()
+        changed = True
     elif display.pressed(badger2040.BUTTON_B):
         state["pomodoros"] = 0
         step = 0
-        badger_os.state_save("timer", state)
         reset_phase()
-        render(left)
+        save_progress()
+        changed = True
     elif display.pressed(badger2040.BUTTON_C):
         step += 1
         reset_phase()
-        render(left)
+        save_progress()
+        changed = True
     elif display.pressed(badger2040.BUTTON_UP):
         state["work_minutes"] = min(60, state["work_minutes"] + 5)
         restart_at_work()
+        changed = True
     elif display.pressed(badger2040.BUTTON_DOWN):
         state["work_minutes"] = max(5, state["work_minutes"] - 5)
         restart_at_work()
+        changed = True
+
+    if changed:
+        render(left)
+        changed = False
 
     if started is None:
         # Paused: nothing to count, so it is safe to sleep

@@ -96,10 +96,12 @@ def render():
     display.update()
 
 
-render()
+# Draw inside the loop, after any wake press is applied: one e-ink refresh, not two
+changed = True
 
 while True:
     display.keepalive()
-    if display.pressed(badger2040.BUTTON_A):
+    if display.pressed(badger2040.BUTTON_A) or changed:
         render()
+        changed = False
     display.halt()

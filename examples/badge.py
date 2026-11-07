@@ -26,6 +26,7 @@ DETAILS_TEXT_SIZE = 0.5
 LEFT_PADDING = 5
 NAME_PADDING = 20
 DETAIL_SPACING = 10
+DOTS_WIDTH = 12     # page dots sit at x=3..9 on the name panel
 
 BADGE_DIR = "/badges"
 DEFAULT_TEXT = """mustelid inc
@@ -142,12 +143,13 @@ def draw_badge():
     display.set_pen(0)
     display.set_font("sans")
     name_size = 2.0
+    left = DOTS_WIDTH if len(badges) > 1 else 0   # keep clear of the page dots
     while True:
         name_length = display.measure_text(name, name_size)
-        if name_length >= (text_width - NAME_PADDING) and name_size >= 0.1:
+        if name_length >= (text_width - left - NAME_PADDING) and name_size >= 0.1:
             name_size -= 0.01
         else:
-            display.text(name, (text_width - name_length) // 2,
+            display.text(name, left + (text_width - left - name_length) // 2,
                          (NAME_HEIGHT // 2) + COMPANY_HEIGHT + 1, WIDTH, name_size)
             break
 
@@ -169,12 +171,12 @@ def draw_badge():
     display.update()
 
 
-draw_badge()
+# Draw inside the loop, after any wake press is applied: one e-ink refresh, not two
+changed = True
 
 while True:
     display.keepalive()
 
-    changed = False
     if display.pressed(badger2040.BUTTON_UP):
         state["index"] = (state["index"] - 1) % len(badges)
         changed = True
@@ -185,5 +187,6 @@ while True:
     if changed:
         badger_os.state_save("badge", state)
         draw_badge()
+        changed = False
 
     display.halt()

@@ -92,7 +92,12 @@ def render(message=None):
 
 new_game()
 playing = False
-render("Snake")
+# A wake press that starts a game skips the title: one e-ink refresh, not two
+if display.pressed(badger2040.BUTTON_B):
+    new_game()
+    render()
+else:
+    render("Snake")
 
 while True:
     display.keepalive()

@@ -11,9 +11,10 @@ import re
 import sys
 
 MARKER = "APP_OK"
+TAIL = "\nprint('{}')\n".format(MARKER)
 
 
-def rewrite(source, tail="\nprint('{}')\n".format(MARKER)):
+def rewrite(source, tail=TAIL):
     """Return `source` with its main loop reduced to a single pass.
 
     The `while True:` is anchored to column 0 on purpose: badge.py scales its

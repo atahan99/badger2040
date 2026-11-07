@@ -1,5 +1,8 @@
 # badger2040
 
+[![test](https://github.com/atahan99/badger2040/actions/workflows/test.yml/badge.svg)](https://github.com/atahan99/badger2040/actions/workflows/test.yml)
+[![MIT](https://img.shields.io/badge/licence-MIT-blue.svg)](LICENSE)
+
 Apps for the [Pimoroni Badger 2040](https://shop.pimoroni.com/products/badger-2040)
 — the **non-wireless** one. Everything runs standalone on battery. Flash it
 once, deploy once, unplug it.
@@ -7,6 +10,8 @@ once, deploy once, unplug it.
 ![All six launcher pages, the QR deck and two badge profiles](docs/images/overview.png)
 
 ## Apps
+
+![Nine of the apps, captured straight from the badge's framebuffer](docs/images/apps.png)
 
 Written for this project:
 
@@ -17,7 +22,7 @@ Written for this project:
 | `cheats` | Reference cards from `/cheats/*.txt` | UP/DOWN sheet, A/C page |
 | `count` | Three tally counters, persist across power-off | A +1, C −1, UP/DOWN switch, B+UP reset |
 | `dice` | Coin, d4–d20, yes/no | A roll, UP/DOWN change die |
-| `dino` | Chrome's offline dinosaur | UP jump (*hold* it — e-ink runs ~4fps), B restart |
+| `dino` | Endless runner, jump the cacti | UP jump (*hold* it — e-ink runs ~4fps), B restart |
 | `life` | Conway's Game of Life on a wrapping grid | A run/pause, B reseed, C step |
 | `p2048` | 2048 | UP/DOWN/A/C slide, B new game |
 | `snake` | Snake, walls are fatal | UP/DOWN/A/C steer, B start |
@@ -26,6 +31,27 @@ Written for this project:
 Shipped with the firmware and kept as-is: `qrgen` (QR deck — contact card, links, guest
 wi-fi), `list` (checklist), `ebook`, `image`, `help`, `info`, `fonts`, and
 `clock` — which cannot keep time, as the board has no clock chip.
+
+## How it works
+
+The interesting constraint is power. To last on two AAA cells, an app calls
+`halt()` as soon as it has drawn, and that **cuts the 3V3 rail**: the RP2040
+switches off and the e-ink keeps showing the last frame for free. A button
+press powers the board back on, so **every press is a cold boot**:
+
+```
+power on ─► main.py ─► launcher ─► badger_os.launch(app)
+                ▲                         │
+                │   button press = boot   │  load /state/<app>.json
+                └── halt() cuts power ◄───┘  apply the wake press, draw once, save
+```
+
+So each app treats a press as *saved state + the button that woke it → one
+screen*. Nothing survives in memory: a 2048 board, a paused timer or a Life
+grid lives in the app's state file, and the press is applied before the first
+draw, so it costs one e-ink refresh rather than two. `tools/test_sleep.py`
+checks exactly this on the desktop by booting apps with saved state and a wake
+button against a fake `badger2040`.
 
 ## Buttons
 
@@ -74,7 +100,8 @@ Docs: [getting started](https://learn.pimoroni.com/article/getting-started-with-
 ## Setup
 
 **1. Flash.** The board ships with a 2022 image too old for these apps. Get the
-**non-W** `...-with-badger-os.uf2` from
+**non-W** `pimoroni-badger2040-v0.0.5-micropython-with-badger-os.uf2` (MicroPython
+1.23.0, the version this is tested on) from
 [Pimoroni's releases](https://github.com/pimoroni/badger2040/releases), hold
 **BOOT/USR** while plugging in, and drop it on the `RPI-RP2` drive. From a
 shell use `cp -X` — without it macOS throws an extended-attribute error after
@@ -108,13 +135,20 @@ copying half the files. Replug and re-run — it is safe to repeat.
 `.gitignore` excludes `badges/*.txt`, `badges/*.png|jpg` and `qrcodes/*.txt`.
 Only the `*.txt.example` templates are committed. One codebase, no "personal
 branch" — the split is data, not code, and `deploy.sh` copies the real files
-while skipping the templates.
+while skipping the templates. It also removes the firmware's sample badge and
+QR, so they do not show up next to yours.
+
+What *is* on the badge is plain text for anyone holding it: the wi-fi QR
+carries its password (use a guest network), and an emergency profile shows its
+details to whoever picks the badge up.
 
 ## Working on the badge
 
 ```bash
 python3 tools/test_logic.py       # game rules, on the desktop
+python3 tools/test_sleep.py       # state survives halt(), one refresh per press
 tools/run_on_device.sh            # every app, on real hardware
+python3 tools/screenshot.py       # docs/images/*.png from the badge's framebuffer
 tools/dev_mode.sh on|off|status   # park main.py so the badge stops sleeping
 python3 tools/make_icons.py       # regenerate launcher icons
 ```
@@ -136,8 +170,14 @@ buttons, no USB. Recovery is a power cycle. `UPDATE_TURBO` is a different,
 safe setting. The e-ink refresh sets the frame rate anyway, not the CPU.
 
 Each app keeps its hardware-free logic above a `# --- hardware below ---`
-marker, so the tests exec just that part — no second copy of the rules, no
-`badger2040` to stub.
+marker, so `test_logic.py` execs just that part — no second copy of the rules,
+no `badger2040` to stub. `test_sleep.py` runs the whole app against a small
+fake instead. CI runs both, plus `ruff`.
+
+`screenshot.py` runs each app once on the badge with its drawing redirected to
+a buffer (`set_framebuffer`), so the images are pixel-exact without touching
+the e-ink. State comes from fixtures in the script; your own badge profiles,
+QR codes and scores are never read.
 
 ## What is patched
 
@@ -151,7 +191,7 @@ comments:
 
 ## Credits
 
-No licence is set, so default copyright applies to the code written here.
+Code written here is [MIT](LICENSE).
 
 Built on [pimoroni/badger2040](https://github.com/pimoroni/badger2040), MIT
 (© 2023 Pimoroni Ltd). `launcher.py` and `examples/badge.py` derive from it and
@@ -161,4 +201,4 @@ The stock apps ship with the firmware and are not redistributed here.
 
 `dino` was inspired by
 [niutech/dino-badger2040](https://github.com/niutech/dino-badger2040) but shares
-no code — that repo carries no licence, so nothing was copied.
+no code; that repo carries no licence, so nothing was copied.

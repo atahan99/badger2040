@@ -41,6 +41,11 @@ for file in examples/*.py examples/*.png; do
     mp fs cp "$file" ":/$file"
 done
 
+# The firmware's sample badge and QR would otherwise show up as an extra
+# profile among yours. badge.jpg stays: the badge app's fallback uses it.
+mp fs rm :/badges/badge.txt  2>/dev/null || true
+mp fs rm :/qrcodes/qrcode.txt 2>/dev/null || true
+
 # Only the filled-in files, never the .example templates
 for file in badges/*.txt badges/*.png badges/*.jpg qrcodes/*.txt cheats/*.txt; do
     [ -e "$file" ] || continue

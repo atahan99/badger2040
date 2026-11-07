@@ -82,11 +82,11 @@ def render():
     display.update()
 
 
-render()
+# Draw inside the loop, after any wake press is applied: one e-ink refresh, not two
+changed = True
 
 while True:
     display.keepalive()
-    changed = False
 
     if display.pressed(badger2040.BUTTON_A):
         result = roll(DICE[state["die"]][1])
@@ -104,5 +104,6 @@ while True:
 
     if changed:
         render()
+        changed = False
 
     display.halt()

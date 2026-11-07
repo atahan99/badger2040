@@ -21,4 +21,4 @@ except Exception as e:
     # it stop the launcher from starting.
     print("boot-to-menu skipped:", e)
 
-import launcher  # noqa: E402  (must come after the state is set)
+import launcher  # noqa: E402,F401  (must come after the state is set; importing runs it)

@@ -86,7 +86,7 @@ display = badger2040.Badger2040()
 display.set_update_speed(badger2040.UPDATE_TURBO)
 display.set_font("bitmap8")
 
-state = {"high": 0}
+state = {"high": 0, "board": None, "score": 0}
 badger_os.state_load("p2048", state)
 
 board = []
@@ -94,11 +94,17 @@ score = 0
 over = False
 
 
+def save():
+    state["board"], state["score"] = board, score
+    badger_os.state_save("p2048", state)
+
+
 def new_game():
     global board, score, over
     board = spawn(spawn([0] * (SIZE * SIZE)))
     score = 0
     over = False
+    save()
 
 
 def render():
@@ -135,36 +141,48 @@ def render():
 
 
 def apply(direction):
+    """Play one move. Returns True if the board changed."""
     global board, score, over
     board, points, changed = move(board, direction)
     if not changed:
-        return
+        return False
     score += points
     board = spawn(board)
-    if score > state["high"]:
-        state["high"] = score
-        badger_os.state_save("p2048", state)
+    state["high"] = max(state["high"], score)
     over = stuck(board)
-    render()
+    save()
+    return True
 
 
-new_game()
-render()
+# On battery every press is a reboot, so the game has to live in the state file
+saved = state["board"]
+if saved and len(saved) == SIZE * SIZE:
+    board, score = list(saved), state["score"]
+    over = stuck(board)
+else:
+    new_game()
+
+# Draw inside the loop, after any wake press is applied: one e-ink refresh, not two
+changed = True
 
 while True:
     display.keepalive()
 
     if display.pressed(badger2040.BUTTON_B):
         new_game()
-        render()
+        changed = True
     elif not over:
         if display.pressed(badger2040.BUTTON_UP):
-            apply("U")
+            changed = apply("U") or changed
         elif display.pressed(badger2040.BUTTON_DOWN):
-            apply("D")
+            changed = apply("D") or changed
         elif display.pressed(badger2040.BUTTON_A):
-            apply("L")
+            changed = apply("L") or changed
         elif display.pressed(badger2040.BUTTON_C):
-            apply("R")
+            changed = apply("R") or changed
+
+    if changed:
+        render()
+        changed = False
 
     display.halt()
